@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAIImageProvider(ImageProvider):
-    """Image generation using OpenAI SDK (compatible with Gemini via proxy)"""
+    """Image generation using OpenAI SDK (compatible with Gemini, Gitee AI, DeepSeek via proxy)"""
     
     def __init__(self, api_key: str, api_base: str = None, model: str = "gemini-3-pro-image-preview"):
         """
@@ -24,14 +24,21 @@ class OpenAIImageProvider(ImageProvider):
         
         Args:
             api_key: API key
-            api_base: API base URL (e.g., https://aihubmix.com/v1)
+            api_base: API base URL (e.g., https://aihubmix.com/v1, https://ai.gitee.com/v1)
             model: Model name to use
         """
+        # Gitee AI 特殊配置: 添加 X-Failover-Enabled header
+        default_headers = {}
+        if api_base and "gitee.com" in api_base:
+            default_headers["X-Failover-Enabled"] = "true"
+            logger.info("Detected Gitee AI, enabled failover support")
+        
         self.client = OpenAI(
             api_key=api_key,
             base_url=api_base,
             timeout=get_config().OPENAI_TIMEOUT,  # set timeout from config
-            max_retries=get_config().OPENAI_MAX_RETRIES  # set max retries from config
+            max_retries=get_config().OPENAI_MAX_RETRIES,  # set max retries from config
+            default_headers=default_headers if default_headers else None
         )
         self.model = model
     
